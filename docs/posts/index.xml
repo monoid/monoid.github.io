@@ -8,12 +8,15 @@
     <language>en-us</language>
     <lastBuildDate>Thu, 06 Jan 2022 14:13:44 +0700</lastBuildDate><atom:link href="https://monoid.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>My First Post</title>
+      <title>Introductory Post</title>
       <link>https://monoid.github.io/posts/my-first-post/</link>
       <pubDate>Thu, 06 Jan 2022 14:13:44 +0700</pubDate>
       
       <guid>https://monoid.github.io/posts/my-first-post/</guid>
-      <description>Just an experiment.</description>
+      <description>Hi!
+My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main arieas of interest are functional programming, Rust, and big data/highload.
+My favourite projects are:
+ StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; HDFS library in Rust (originally intended to replace libhdfs). damietta &amp;ndash; not-even-alpha binary translator project.  </description>
     </item>
     
   </channel>
