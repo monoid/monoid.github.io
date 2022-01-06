@@ -1,0 +1,4 @@
+baseURL = 'https://monoid.github.io/'
+languageCode = 'en-us'
+title = 'Kiss My Shiny Hugo Site'
+theme = 'ananke'
