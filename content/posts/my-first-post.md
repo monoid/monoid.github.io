@@ -5,13 +5,15 @@ draft: false
 ---
 Hi!
 
-My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia.  My main arieas of interest are functional programming, Rust, and big data/highload.
+My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia.  My main areas of interest are functional programming, Rust, and big data/highload.
+
+Since begin of 2024 I live in Barcelona, Spain.
 
 My favourite projects are:
 
   * [StarJs](https://github.com/monoid/starjs) -- astronomical library for JavaScript.
   * [FUCC](https://github.com/monoid/fucc) -- LALR parser generator for Common Lisp.
   * [hdfesse](https://github.com/monoid/hdfesse) -- WIP HDFS library in Rust (originally intended to replace libhdfs).
-  * [damietta](https://github.com/monoid/damietta) -- not-even-alpha binary translator project.
+<!--  * [damietta](https://github.com/monoid/damietta) -- not-even-alpha binary translator project. -->
 
-I am big fan of [Emacs](https://www.gnu.org/software/emacs/) and Apple Macbook Air M1.  My other hobbies include 3d printing with my son and studying French language, and reading in general.
+I am big fan of [Emacs](https://www.gnu.org/software/emacs/) and Apple Macbook Air M1.  My other hobbies include 3d printing with my son, studying French language, ink pens and reading in general.
