@@ -7,7 +7,7 @@ Hi!
 
 My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia.  My main areas of interest are functional programming, Rust, and big data/highload.
 
-Since begin of 2024 I live in Barcelona, Spain.
+Since the beginning of 2024 I live in Barcelona, Spain.
 
 My favourite projects are:
 

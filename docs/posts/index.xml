@@ -13,7 +13,7 @@
       <link>https://monoid.github.io/posts/my-first-post/</link>
       <pubDate>Thu, 06 Jan 2022 14:13:44 +0700</pubDate>
       <guid>https://monoid.github.io/posts/my-first-post/</guid>
-      <description>Hi!&#xA;My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main areas of interest are functional programming, Rust, and big data/highload.&#xA;Since begin of 2024 I live in Barcelona, Spain.&#xA;My favourite projects are:&#xA;StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs). I am big fan of Emacs and Apple Macbook Air M1.</description>
+      <description>Hi!&#xA;My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main areas of interest are functional programming, Rust, and big data/highload.&#xA;Since the beginning of 2024 I live in Barcelona, Spain.&#xA;My favourite projects are:&#xA;StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs). I am big fan of Emacs and Apple Macbook Air M1.</description>
     </item>
   </channel>
 </rss>
