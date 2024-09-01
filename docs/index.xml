@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Kiss My Shiny Hugo Site</title>
-    <link>https://monoid.github.io/</link>
+    <link>http://localhost:1313/</link>
     <description>Recent content on Kiss My Shiny Hugo Site</description>
-    <generator>Hugo</generator>
+    <generator>Hugo -- 0.133.1</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 06 Jan 2022 14:13:44 +0700</lastBuildDate>
-    <atom:link href="https://monoid.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Introductory Post</title>
-      <link>https://monoid.github.io/posts/my-first-post/</link>
+      <link>http://localhost:1313/posts/my-first-post/</link>
       <pubDate>Thu, 06 Jan 2022 14:13:44 +0700</pubDate>
-      <guid>https://monoid.github.io/posts/my-first-post/</guid>
-      <description>Hi!&#xA;My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main areas of interest are functional programming, Rust, and big data/highload.&#xA;Since the beginning of 2024 I live in Barcelona, Spain.&#xA;My favourite projects are:&#xA;StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs). I am big fan of Emacs and Apple Macbook Air M1.</description>
+      <guid>http://localhost:1313/posts/my-first-post/</guid>
+      <description>Hi!
+My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main areas of interest are functional programming, Rust, and big data/highload.
+Since the beginning of 2024 I live in Barcelona, Spain.
+My favourite projects are:
+StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs). I am big fan of Emacs and Apple Macbook Air M1.</description>
     </item>
   </channel>
 </rss>
