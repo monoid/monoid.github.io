@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>Abouts on Kiss My Shiny Hugo Site</title>
+    <title>About me on Kiss My Shiny Hugo Site</title>
     <link>https://monoid.github.io/about/</link>
-    <description>Recent content in Abouts on Kiss My Shiny Hugo Site</description>
-    <generator>Hugo -- gohugo.io</generator>
+    <description>Recent content in About me on Kiss My Shiny Hugo Site</description>
+    <generator>Hugo -- 0.133.1</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 06 Jan 2022 14:55:29 +0700</lastBuildDate><atom:link href="https://monoid.github.io/about/index.xml" rel="self" type="application/rss+xml" />
-    <item>
-      <title>Circum Vitae</title>
-      <link>https://monoid.github.io/about/cv/</link>
-      <pubDate>Thu, 06 Jan 2022 14:55:29 +0700</pubDate>
-      
-      <guid>https://monoid.github.io/about/cv/</guid>
-      <description>Novosibirsk, Russia lispnik@gmail.com https://github.com/monoid   Job experience  Leading software engineer, Semrush Jan 2020-Oct 2021, Saint-Peterburg, Russia In a team developing a WWW crawler, I was responsible for scheduler part that determined when and how often each page is be crawled subject to different real-time limitations. By improving the scheduling algorithms, increased output rate by 40% obeying all the limitations, and reduced workload to rarely-updated websites. Also worked on improving Semrush&amp;rsquo;s custom Pagerank implementation.</description>
-    </item>
-    
+    <lastBuildDate></lastBuildDate>
+    <atom:link href="https://monoid.github.io/about/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
