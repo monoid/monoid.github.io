@@ -1,5 +1,5 @@
 baseURL = 'https://monoid.github.io/'
 languageCode = 'en-us'
-title = 'My Little Hugo Site'
+title = 'Monoidal Tranformation'
 theme = 'PaperMod'
 publishDir = 'docs'

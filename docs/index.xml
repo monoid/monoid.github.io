@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>Kiss My Shiny Hugo Site</title>
+    <title>Monoidal Tranformation</title>
     <link>https://monoid.github.io/</link>
-    <description>Recent content on Kiss My Shiny Hugo Site</description>
-    <generator>Hugo -- 0.133.1</generator>
+    <description>Recent content on Monoidal Tranformation</description>
+    <generator>Hugo -- 0.147.3</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 06 Jan 2022 14:13:44 +0700</lastBuildDate>
     <atom:link href="https://monoid.github.io/index.xml" rel="self" type="application/rss+xml" />
@@ -13,11 +13,16 @@
       <link>https://monoid.github.io/posts/my-first-post/</link>
       <pubDate>Thu, 06 Jan 2022 14:13:44 +0700</pubDate>
       <guid>https://monoid.github.io/posts/my-first-post/</guid>
-      <description>Hi!
-My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia. My main areas of interest are functional programming, Rust, and big data/highload.
-Since the beginning of 2024 I live in Barcelona, Spain.
-My favourite projects are:
-StarJs &amp;ndash; astronomical library for JavaScript. FUCC &amp;ndash; LALR parser generator for Common Lisp. hdfesse &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs). I am big fan of Emacs and Apple Macbook Air M1.</description>
+      <description>&lt;p&gt;Hi!&lt;/p&gt;
+&lt;p&gt;My name is Ivan Boldyrev, I am software engineer born in Novosibirsk, Russia.  My main areas of interest are functional programming, Rust, and big data/highload.&lt;/p&gt;
+&lt;p&gt;Since the beginning of 2024 I live in Barcelona, Spain.&lt;/p&gt;
+&lt;p&gt;My favourite projects are:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/monoid/starjs&#34;&gt;StarJs&lt;/a&gt; &amp;ndash; astronomical library for JavaScript.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/monoid/fucc&#34;&gt;FUCC&lt;/a&gt; &amp;ndash; LALR parser generator for Common Lisp.&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://github.com/monoid/hdfesse&#34;&gt;hdfesse&lt;/a&gt; &amp;ndash; WIP HDFS library in Rust (originally intended to replace libhdfs).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I am big fan of &lt;a href=&#34;https://www.gnu.org/software/emacs/&#34;&gt;Emacs&lt;/a&gt; and Apple Macbook Air M1.  My other hobbies include 3d printing with my son, studying French language, ink pens and reading in general.&lt;/p&gt;</description>
     </item>
   </channel>
 </rss>
