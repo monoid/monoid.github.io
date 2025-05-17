@@ -2,3 +2,7 @@ baseURL = 'https://monoid.github.io/'
 languageCode = 'en-us'
 title = 'Monoidal Tranformation'
 theme = 'PaperMod'
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'
