@@ -3,6 +3,7 @@ title: "Rust Coroutines on AArch64 (ARM64)"
 date: 2025-05-20T19:08:55+02:00
 draft: true
 tags: ["ARM", "Rust", "coroutine"]
+authors: ["Ivan Boldyrev"]
 ---
 
 The amazing book [Asynchronous Programming in
@@ -175,7 +176,7 @@ unsafe extern "C" fn trampoline() {
     naked_asm! {
         "ldr x1, [sp, {f_trampoline_offset}]",
         "ldr lr, [sp, {guard_trampoline_offset}]",
-        "sub sp, sp, 0x10",  // current stack frame is not neeeded anymore
+        "sub sp, sp, 0x10",  // current stack frame is not needed anymore
         "br x1",
         f_trampoline_offset = const F_TRAMPOLINE_OFFSET,
         guard_trampoline_offset = const GUARD_TRAMPOLINE_OFFSET,
@@ -235,7 +236,7 @@ unsafe extern "C" fn switch() {
 ```
 
 You may find the source code of the full example at the pull-request:
-<!-- TODO  -->.
+https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/pull/34\.
 
 #### Homework 2.2
 > Reimplement `switch` using `stp`/`ldp`. Use post-increment mode rather than
@@ -249,8 +250,8 @@ instructive to port other examples of the Chapter 5!
 
 ## 3. Thoughts on a portable version
 
-A trampoline simplifies creating a version that works on both archs (with proper
-`#[cfg]`s). On `x86_64`, a trampoline might look like this:
+A trampoline simplifies creating a version that works on both architectures
+(with proper `#[cfg]`s). On `x86_64`, a trampoline might look like this:
 
 ```rust
         // Set up in the `Runtime::spawn`:
@@ -281,6 +282,10 @@ unsafe extern "C" fn trampoline() {
 
 #### Homework 3.1
 > Write a version that works on both architectures.
+
+## Disclaimer
+
+This text was written by Ivan Boldyrev. AI tools were used only for proofreading.
 
 <!-- Local Variables: -->
 <!-- spell-fu-buffer-session-localwords: ("coroutine" "coroutines" "MacOS" "stackful" "callee") -->

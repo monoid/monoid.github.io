@@ -2,6 +2,8 @@ baseURL = 'https://monoid.github.io/'
 languageCode = 'en-us'
 title = 'Monoidal Tranformation'
 theme = 'PaperMod'
+author = 'Ivan Boldyrev'
+copyright = "Copyright © 2025, Ivan Boldyrev; all rights reserved."
 
 [caches]
   [caches.images]
