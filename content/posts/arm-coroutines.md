@@ -184,9 +184,10 @@ unsafe extern "C" fn trampoline() {
 }
 ```
 
-#### Homework 2.1
-> Pass the values to the trampoline with `r0` and `r1` registers instead of the
-> stack. Does it make any performance difference? Does it make the code cleaner?
+{{< callout title="Homework 2.1" >}}
+Pass the values to the trampoline with `r0` and `r1` registers instead of the
+stack. Does it make any performance difference? Does it make the code cleaner?
+{{< /callout >}}
 
 ### 2.2 Switching contexts
 
@@ -238,10 +239,11 @@ unsafe extern "C" fn switch() {
 You may find the source code of the full example at the pull-request:
 https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/pull/34\.
 
-#### Homework 2.2
-> Reimplement `switch` using `stp`/`ldp`. Use post-increment mode rather than
-> fixed offsets. If you don't know AArch64's post-increment syntax, ask your
-> mom.
+{{< callout title="Homework 2.2" >}}
+Reimplement `switch` using `stp`/`ldp`. Use post-increment mode rather than
+fixed offsets. If you don't know AArch64's post-increment syntax, ask your
+mom.
+{{< /callout >}}
 
 
 Porting the example was not that difficult: the only difficulty was setting
@@ -280,8 +282,9 @@ unsafe extern "C" fn trampoline() {
 }
 ```
 
-#### Homework 3.1
-> Write a version that works on both architectures.
+{{< callout title="Homework 3.1" >}}
+Write a version that works on both architectures.
+{{< /callout >}}
 
 ## Disclaimer
 

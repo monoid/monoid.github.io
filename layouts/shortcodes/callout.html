@@ -1,0 +1,19 @@
+<!-- based on https://cosimameyer.com/post/customized-callout-boxes-in-hugo/ -->
+<div class="callout">
+  <div class="callout-content">
+    <strong>{{ .Get "title" }}</strong>
+    <p>{{ .Inner | markdownify }}</p>
+  </div>
+</div>
+
+<style>
+  /* Base Callout Styling */
+  .callout {
+    position: relative; /* Needed for absolute positioning of the ::before element */
+    padding: 20px;
+    margin: 20px 0;
+    border: 2px solid; /* Adds a border around the callout box */
+    border-radius: 8px; /* Rounded corners for the box */
+    background-color: #f9f9f9;
+  }
+</style>
