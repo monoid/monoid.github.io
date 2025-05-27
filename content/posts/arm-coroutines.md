@@ -1,7 +1,7 @@
 ---
 title: "Rust Coroutines on AArch64 (ARM64)"
 date: 2025-05-20T19:08:55+02:00
-draft: true
+draft: false
 tags: ["ARM", "Rust", "coroutine"]
 authors: ["Ivan Boldyrev"]
 ---
