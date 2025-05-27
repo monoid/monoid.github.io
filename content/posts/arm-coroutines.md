@@ -2,17 +2,19 @@
 title: "Rust Coroutines on AArch64 (ARM64)"
 date: 2025-05-20T19:08:55+02:00
 draft: true
+tags: ["ARM", "Rust", "coroutine"]
 ---
 
 The amazing book [Asynchronous Programming in
 Rust](https://www.packtpub.com/en-us/product/asynchronous-programming-in-rust-9781805128137)
 by Carl Fredrik Samson has a chapter on implementing stackful coroutines
-(fibers) in Rust for `x86_64` architecture, both Linux and MacOS. But for the
-sake of simplicity, no `AArch64` implementation was provided. I&nbsp;tried to
-port it to `AArch64`, and this post describes my approach.
+(fibers) in Rust for `x86_64` architecture, both Linux and MacOS. But unlike
+other chapters, no `AArch64` implementation was provided for the sake of
+simplicity. I&nbsp;tried to port it to `AArch64`, and this post describes my
+approach.
 
 This text is just an additional material for the book. I&nbsp;presume you are
-familiar with it or with the original code at
+familiar either with it or with the original code at
 [`ch05/c-fibers`](https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/tree/main/ch05/c-fibers).
 
 Please note that unstable Rust has had a lot of changes since the book was
@@ -38,7 +40,7 @@ https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-pla
 However, there is nothing specific for our implementation, except confirming that
 `r18` should be ignored.
 
-The Linux ABI simply refers to the generic AAarch64 ABI.
+The Linux ABI simply refers to the generic AArch64 ABI.
 
 Please note that we ignore here floating point and vector register for
 simplicity, as the original implementation does.
@@ -48,7 +50,7 @@ simplicity, as the original implementation does.
 The instruction set used in the fiber engine is quite small.
 
 {{< mytable >}}
-`x86_64` syntax         | `AAarch64` syntax     | Comment
+`x86_64` syntax         | `AArch64` syntax     | Comment
 ----------------------- | --------------------- | -------
 `mov Target, Source`    | `mov Target, Source`  | Moving value from register to register
 `mov Target, [Source + offset]` | `ldr Target, [Source, offset]`    | Loading register from memory with offset
@@ -124,14 +126,12 @@ The `x86_64` version imitated nested calls: `f`, the fiber body, a technical
 Here, we don't need `skip` function to be run after `f`; we need `trampoline`
 function to be run before `f`.
 
-<!-- Final result  -->
-
 ### 2.1 Spawning a fiber
 Launching a fiber is little more involved. We cannot just arrange stack to have
 return addresses of functions; we have to set `LR` to be equal to `guard` and
 then jump to fiber function. The `ThreadContext` allows us only to set `LR`
-register; lets save the values needed to the stack and set the context's `LR` to
-a `trampoline` function that does the work.
+register; let's save the values needed to the stack and set the context's `LR` to
+a `trampoline` function that does the heavy lifting.
 
 ```rust
 const F_TRAMPOLINE_OFFSET: usize = 0;
@@ -149,7 +149,7 @@ impl Runtime {
 
         let size = available.stack.len();
 
-        // prepare stack for the trampoline
+        // prepare stack for the `trampoline`
         let stack_top;
         unsafe {
             let s_end = available.stack.as_mut_ptr().add(size);
@@ -163,13 +163,12 @@ impl Runtime {
         available.ctx.sp = stack_top as u64;
         available.state = State::Ready;
     }
-   
 }
 
 #[unsafe(naked)]
 #[no_mangle]
 unsafe extern "C" fn trampoline() {
-    // the stack is prepared by the `Runtime::spawn`:
+    // The stack is prepared by the `Runtime::spawn`:
     // sp + 00      function_address
     // sp + 08      guard address
     // sp + 10 ..   unused
@@ -248,13 +247,13 @@ Porting the example was not that difficult: the only difficulty was setting
 the `LR` register instead of pushing addresses to the stack.  You may find it
 instructive to port other examples of the Chapter 5!
 
-## 3. Universal version
+## 3. Thoughts on a portable version
 
-A trampoline makes easier creating a version with that would work on both archs
-(with proper `#[cfg]`s).  Indeed, and `x86_64` trampoline would look like:
+A trampoline simplifies creating a version that works on both archs (with proper
+`#[cfg]`s). On `x86_64`, a trampoline might look like this:
 
 ```rust
-        // ...
+        // Set up in the `Runtime::spawn`:
         unsafe {
             stack_top = s_end_aligned.sub(std::mem::size_of::<u64>());
             std::ptr::write(stack_top.cast::<u64>(), trampoline as u64);
@@ -267,17 +266,21 @@ A trampoline makes easier creating a version with that would work on both archs
 #[unsafe(naked)]
 #[no_mangle]
 unsafe extern "C" fn trampoline() {
-    // the stack and registers are set by the `Runtime::spawn`:
+    // The stack and registers are set by the `Runtime::spawn`:
     // 1. the stack is aligned by 16 bytes boundary
-    // 2. rbx contains guard's address
-    // 3. rax contains f's address
+    // 2. rax contains f's address
+    // 3. rbx contains guard's address
     naked_asm! {
-        "push rbx",
-        "call rax",  // now it is aligned again at the f invocation
-        "ret",       // after returning to guard, it is aligned again
+        "push rbx",  // sp is incremented by 8
+        "call rax",  // sp is incremented by 8 and now it is aligned again at the f invocation
+        // after return, it is aligned by 8
+        "ret",       // after returning to the `guard`, it is aligned by 16 again
     };
 }
 ```
+
+#### Homework 3.1
+> Write a version that works on both architectures.
 
 <!-- Local Variables: -->
 <!-- spell-fu-buffer-session-localwords: ("coroutine" "coroutines" "MacOS" "stackful" "callee") -->
