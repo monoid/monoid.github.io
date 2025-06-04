@@ -8,3 +8,7 @@ copyright = "Copyright © 2025, Ivan Boldyrev; all rights reserved."
 [caches]
   [caches.images]
     dir = ':cacheDir/images'
+
+[params]
+ShowShareButtons = true
+ShareButtons = ["x", "linkedin", "reddit", "facebook"]
