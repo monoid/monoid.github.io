@@ -3,14 +3,13 @@ title: "Rust Coroutines on AArch64 (ARM64)"
 date: 2025-05-20T19:08:55+02:00
 draft: false
 tags: ["ARM", "Rust", "coroutine"]
-authors: ["Ivan Boldyrev"]
 ---
 
 The amazing book [Asynchronous Programming in
 Rust](https://www.packtpub.com/en-us/product/asynchronous-programming-in-rust-9781805128137)
 by Carl Fredrik Samson has a chapter on implementing stackful coroutines
 (fibers) in Rust for `x86_64` architecture, both Linux and MacOS. But unlike
-other chapters, no `AArch64` implementation was provided for the sake of
+the other chapters, no `AArch64` implementation was included for the sake of
 simplicity. I&nbsp;tried to port it to `AArch64`, and this post describes my
 approach.
 
@@ -18,14 +17,27 @@ This text is just an additional material for the book. I&nbsp;presume you are
 familiar either with it or with the original code at
 [`ch05/c-fibers`](https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/tree/main/ch05/c-fibers).
 
-Please note that unstable Rust has had a lot of changes since the book was
-written.  The examples in the article use modern version of Rust with
-`#[unsafe(naked)]` and `naked_asm!` for naked functions.
+Please note that inline asm usage in Rust has changed since the book was
+written. The examples in the article use modern version of Rust with
+`#[unsafe(naked)]` and `naked_asm!` naked function syntax.
+
+The source code is available at the pull request at:
+https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/pull/34\.
 
 {{< toc >}}
 
 ## 1. AArch64 ABI -- how AArch64 does calls
-The AArch64 ABI is described in the "Procedure Call Standard for the Arm 64-bit Architecture" document found here:
+Unlike `x86_64`, ARM's register bank is fairly uniform: it has 31 generic
+registers (some of them have usage-specific aliases, though). Instructions
+can also refer to the 32nd register, though: depending on particular instruction[^variant], it is
+either `SP` (stack pointer) or `ZR` (a virtual zero register).
+
+[^variant]: Instruction variant, actually! "Add (extended register)" can use
+    `SP` as a destination or first argument, but "Add (shifted register)"
+    allows `ZR`.
+
+The AArch64 ABI is described in the "Procedure Call Standard for the Arm 64-bit
+Architecture" document found here:
 https://github.com/ARM-software/abi-aa/releases\.
 
 The chapter "6. The Base Procedure Call Standard" declares:
@@ -34,7 +46,8 @@ The chapter "6. The Base Procedure Call Standard" declares:
 2. `r29` aka `FP` is a frame pointer register, also *callee-saved*.
 3. Subroutine call doesn't push return address to a stack, but uses `r30` register aka `LR`; its value is *caller-saved*.
 4. `SP` mod 16 == 0.  The stack is always 16-byte aligned.
-5. `r16` and `r17` are scratch (temporary) registers. `r18` is "Platform Register, if needed; otherwise a temporary".
+5. `r16` and `r17` are linker's scratch  registers. `r18` is "Platform Register, if needed; otherwise a temporary".
+6. The rest of registers are *caller-saved*.
 
 It's worth checking MacOS-specific ABI details:
 https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms\.
@@ -44,7 +57,7 @@ However, there is nothing specific for our implementation, except confirming tha
 The Linux ABI simply refers to the generic AArch64 ABI.
 
 Please note that we ignore here floating point and vector register for
-simplicity, as the original implementation does.
+simplicity, just as the original implementation does.
 
 ### 1.1. Bits of AArch64 assembler
 
@@ -68,12 +81,16 @@ different in AArch64.
 
 When an `x86_64` processor executes a **`call`** instruction, it pushes a return
 address (i.e. the address of the next instruction) to the stack. Unlike
-`x86_64,` AArch64 has a dedicated register for that, `LR`.
+`x86_64,` AArch64 has a dedicated register for that, `LR`, and `blr` instruction
+name means "branch with link register".
 
-A **`ret`** instruction also uses `LR` for return instead of popping an address
-from the stack. It is almost equivalent to `br LR` instruction (branch to
-register `LR`), but **`ret`** gives a *hint* to processor that this is a return
-from a **`blr`** subroutine call, enabling better branch prediction.
+A **`ret`** instruction also uses[^ret_reg] `LR` as a return address instead of
+popping it from the stack. It is almost equivalent to `br LR` instruction
+(branch to register `LR`), but **`ret`** gives a *hint* to processor that this
+is a return from a **`blr`** subroutine call, enabling better branch prediction.
+
+[^ret_reg]: Unlike `x86_64`, `AArch64`'s `ret` takes an optional register
+argument which defaults to `LR`.
 
 But how can we call a nested subroutine? The nested **`blr`** will overwrite the
 `LR` value. Well, the `LR` register is a caller-saved, so the parent subroutine
@@ -97,9 +114,9 @@ the `LR` register manually at spawn, and it requires some more assembler code.
 
 The `ThreadContext` is still a sequence of `u64` fields, one field for each
 register to be saved and restored. Saving and restoring is also straightforward,
-except `SP` register cannot be saved (or loaded) to memory directly and has to
-be stored to an intermediate register first (and restored from an intermediate
-register).
+except `SP`, being a special register, cannot be stored or loaded from memory
+directly and has to be stored to an intermediate register first (and restored
+from an intermediate register).
 
 ```rust
 #[derive(Debug, Default)]
@@ -124,15 +141,15 @@ struct ThreadContext {
 The `x86_64` version imitated nested calls: `f`, the fiber body, a technical
 `skip` function and then the `guard` function.
 
-Here, we don't need `skip` function to be run after `f`; we need `trampoline`
-function to be run before `f`.
+Here, we don't need `skip` function to be run after `f`; we use the `trampoline`
+function to be run before `f` instead.
 
 ### 2.1 Spawning a fiber
 Launching a fiber is little more involved. We cannot just arrange stack to have
-return addresses of functions; we have to set `LR` to be equal to `guard` and
-then jump to fiber function. The `ThreadContext` allows us only to set `LR`
-register; let's save the values needed to the stack and set the context's `LR` to
-a `trampoline` function that does the heavy lifting.
+return addresses of functions at proper positions; we have to set `LR` to be
+equal to `guard` and then jump to fiber function. The `ThreadContext` allows us
+only to set `LR` register; let's save the values needed to the stack and set the
+context's `LR` to a `trampoline` function that does the heavy lifting.
 
 ```rust
 const F_TRAMPOLINE_OFFSET: usize = 0;
@@ -236,9 +253,6 @@ unsafe extern "C" fn switch() {
 }
 ```
 
-You may find the source code of the full example at the pull-request:
-https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/pull/34\.
-
 {{< callout title="Homework 2.2" >}}
 Reimplement `switch` using `stp`/`ldp`. Use post-increment mode rather than
 fixed offsets. If you don't know AArch64's post-increment syntax, ask your
@@ -246,7 +260,7 @@ mom.
 {{< /callout >}}
 
 
-Porting the example was not that difficult: the only difficulty was setting
+Porting the example was not that difficult: the only obstacle was setting
 the `LR` register instead of pushing addresses to the stack.  You may find it
 instructive to port other examples of the Chapter 5!
 
@@ -288,7 +302,8 @@ Write a version that works on both architectures.
 
 ## Disclaimer
 
-This text was written by Ivan Boldyrev. AI tools were used only for proofreading.
+This text was written by Ivan Boldyrev. I used AI only for proofreading, but its
+help was invaluable.
 
 <!-- Local Variables: -->
 <!-- spell-fu-buffer-session-localwords: ("coroutine" "coroutines" "MacOS" "stackful" "callee") -->
