@@ -73,7 +73,7 @@ The instruction set used in the fiber engine is quite small.
 `ret`                   | `ret`                 | Return from a subroutine (but semantics is different)
 {{< /mytable >}}
 
-The instruction for moving , loading and storing values are more or less same,
+The instruction for moving, loading and storing values are more or less same,
 though naming is different. Subroutine calls and returns, however, are really
 different in AArch64.
 
@@ -145,7 +145,7 @@ Here, we don't need `skip` function to be run after `f`; we use the `trampoline`
 function to be run before `f` instead.
 
 ### 2.1 Spawning a fiber
-Launching a fiber is little more involved. We cannot just arrange stack to have
+Launching a fiber is a little more involved. We cannot just arrange stack to have
 return addresses of functions at proper positions; we have to set `LR` to be
 equal to `guard` and then jump to fiber function. The `ThreadContext` allows us
 only to set `LR` register; let's save the values needed to the stack and set the
