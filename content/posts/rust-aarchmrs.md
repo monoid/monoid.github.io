@@ -1,7 +1,7 @@
 ---
 title: "AARCHMRS dataset for AArch64 instruction synthesis in Rust"
 date: 2025-07-29T16:12:02+02:00
-draft: true
+draft: false
 tags: ["Arm", "AARCHMRS", "Rust"]
 ---
 Arm Limited, the company behind the ARM architecture, publishes [AARCHMRS
