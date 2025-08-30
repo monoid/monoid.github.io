@@ -17,7 +17,7 @@ draft: false
 
 ### Cloudless Labs  
 **Rust Developer**  
-*May 2022 - Present (2 years 5 months)*
+*May 2022 - April 2025 (2 years 11 months)*
 
 - Developed tooling and infrastructure for AquaVM, a distributed interpreted language, and optimized its execution for memory and time.
 - Created a testing framework with simulation of virtual networks, and specific language features and fixes.
@@ -30,7 +30,7 @@ draft: false
 *January 2020 - October 2021 (1 year 10 months)*  
 Saint Petersburg, St Petersburg City, Russia
 
-- Maintained the scheduler component of a WWW crawler, improving scheduling algorithms to increase the crawling rate by 40% while staying within constraints.
+- Maintained the scheduler component of a WWW crawler, improving scheduling algorithms to increase the crawling rate by 40% while staying within politeness constraints.
 - The index size surpassed the planned target by almost 50%.
 - Stack: Python, C++ (incl. Boost.Python), Spark (PySpark).
 
