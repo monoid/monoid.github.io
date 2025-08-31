@@ -10,6 +10,8 @@ My name is Ivan Boldyrev, I'm a Rust software engineer with quite broad interest
 
 I currently live in Barcelona, Spain.  I was born in a suburb of Novosibirsk, Russia, have been living in Saint-Petersburg, Russia and Tbilisi, Georgia.
 
-I am a big fan of [Emacs](https://www.gnu.org/software/emacs/), Rust and Apple Macbook Air M1. My other hobbies include studying French, ink pen, sailing and reading.
+I am a big fan of Emacs, Rust and my Apple Macbook Air M1. My other hobbies include studying French, ink pens, sailing and reading.
 
-My [CV]({{< ref "/about/cv2" >}}).
++ My [CV]({{< ref "/about/cv" >}}).
++ [linkedin.com/in/ivan-boldyrev](https://www.linkedin.com/in/ivan-boldyrev).
++ [github.com/monoid](https://github.com/monoid/)

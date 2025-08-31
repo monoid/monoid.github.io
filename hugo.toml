@@ -12,3 +12,12 @@ copyright = "Copyright © 2025, Ivan Boldyrev; all rights reserved."
 [params]
 ShowShareButtons = true
 ShareButtons = ["x", "linkedin", "reddit", "facebook"]
+
+[menu]
+[[menu.main]]
+name = "About me"
+url = "about"
+
+[[menu.main]]
+name = "github"
+url = "https://github.com/monoid/"
