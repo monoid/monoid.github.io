@@ -18,6 +18,11 @@ draft: false
  
 ## Job Experience
  
+### Qdrant Solutions GmbH
+**Rust Developer**, remote contract\
+*September 2025 - now*
+- Develpment of open-source vector search database.
+
 ### Cloudless Labs (Fluence Labs)
 **Rust Developer**, remote contract\
 *May 2022 - April 2025 (2 years 11 months)*
