@@ -13,11 +13,10 @@ TocOpen: true
 - **Location:** Barcelona, Catalonia, Spain
 
 ## Top Skills
-- Languages: Rust . Python . C++
-- Rust ecosystem: Tokio . axum . tonic . serde . Rkyv . WASM . libc
-- Domains: Distributed systems . Performance engineering . Vector search . Cryptography (LWE, functional encryption, MPC) . Web crawling
-- Other: WASM . System programming
-- Open Source: WASM-SIMD implementation of [BLAKE3](https://github.com/BLAKE3-team/BLAKE3) . Performance contributions to [Rkyv](https://github.com/rkyv/rkyv)
+- Languages: Rust,  Python, C++.
+- Rust ecosystem: Tokio, axum, tonic, serde, Rkyv, WASM, libc.
+- Domains: Distributed systems, Performance engineering, Vector search, Web crawling, System programming.
+- Open Source: WASM-SIMD implementation of [BLAKE3](https://github.com/BLAKE3-team/BLAKE3), Performance contributions to [Rkyv](https://github.com/rkyv/rkyv)
 
 ## Job Experience
  
@@ -27,7 +26,7 @@ TocOpen: true
 - Optimized batch search operations by using cache more efficiently.
 - Identified and fixed a memory safety issue (unsoundness) in the production Rust code.
 - Analyzed performance of Qdrant under concurrent search-update workloads.
-- Based on this analysis, designed a new concurrent architecture for Qdrant core using fine-grained locks and atomic operations.
+- Based on this analysis, designed a new concurrent architecture for the Qdrant core using fine-grained locks and atomic operations.
 
 ### Stealth cryptography startup
 **Rust Developer**, remote contract\
