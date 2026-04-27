@@ -1,6 +1,7 @@
 ---
 title: "Baby-step-giant-step algorithm in functional encryption"
 date: 2025-07-12T18:44:31+02:00
+ShowToc: true
 ---
 
 The [Shanks' baby-step-giant step (BSGS)

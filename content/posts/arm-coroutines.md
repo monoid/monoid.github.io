@@ -3,6 +3,7 @@ title: "Rust Coroutines on AArch64 (ARM64)"
 date: 2025-05-20T19:08:55+02:00
 draft: false
 tags: ["ARM", "Rust", "coroutine"]
+ShowToc: true
 ---
 
 The amazing book [Asynchronous Programming in
@@ -23,8 +24,6 @@ written. The examples in the article use modern version of Rust with
 
 The source code is available at the pull request at:
 https://github.com/PacktPublishing/Asynchronous-Programming-in-Rust/pull/34\.
-
-{{< toc >}}
 
 ## 1. AArch64 ABI -- how AArch64 does calls
 Unlike `x86_64`, ARM's register bank is fairly uniform: it has 31 generic

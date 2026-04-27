@@ -2,6 +2,8 @@
 title: "Ivan Boldyrev's Curriculum Vitae"
 date: 2026-04-25T19:30:20+02:00
 draft: false
+ShowToc: true
+TocOpen: true
 ---
  
 ## Contact
@@ -9,7 +11,7 @@ draft: false
 - **LinkedIn:** [linkedin.com/in/ivan-boldyrev](https://www.linkedin.com/in/ivan-boldyrev)
 - **GitHub:** [github.com/monoid](https://github.com/monoid/)
 - **Location:** Barcelona, Catalonia, Spain
- 
+
 ## Top Skills
 - Languages: Rust . Python . C++
 - Rust ecosystem: Tokio . axum . tonic . serde . Rkyv . WASM . libc
