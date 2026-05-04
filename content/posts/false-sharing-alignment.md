@@ -42,6 +42,96 @@ The reason is that since the Sandy Bridge architecture, the spatial prefetcher[^
 
 Moreover, this behavior is controlled by a per-core MSR setting called either "Adjacent Cache Line Prefetcher Disable" or "L2 Adjacent Cache Line Prefetcher Disable". Check before benchmarking!
 
+# Benchmark
+
+I tried to reproduce the 128-byte aligment improvement on a real benchmark. It wasn't easy! Just starting 2 threads updating an atomic each is not enough: once the atomics are in the respective CPU caches, no MESI interaction is done. Let's try something more involved: a vector of atomics should do the trick.
+
+```rust
+use std::ops::Deref;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+// Uncomment any of thses lines.
+// #[repr(align(64))]
+// #[repr(align(128))]
+#[derive(Default, Debug)]
+struct CachePadded<T> {
+    value: T,
+}
+
+impl<T> Deref for CachePadded<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+// Two atomics side-by-side separated by cache padding configured above.
+#[derive(Default, Debug)]
+struct AddSub {
+    // Updated by the first thread.
+    add: CachePadded<AtomicU64>,
+    // Updated by the second thread.
+    sub: CachePadded<AtomicU64>,
+}
+
+impl AddSub {
+    fn get_value(&self) -> u64 {
+        let add = self.add.load(Ordering::Relaxed);
+        let sub = self.sub.load(Ordering::Relaxed);
+        add.wrapping_sub(sub)
+    }
+}
+
+fn main() {
+    const N: usize = 1_000_000_000;
+    const ORDERING: Ordering = Ordering::AcqRel;
+    const SIZE: usize = 8;
+
+    let data = Vec::from_iter(std::iter::repeat_with(|| AddSub::default()).take(SIZE));
+    let addsub: Arc<[AddSub]> = data.into();
+    let addsub1 = addsub.clone();
+    let addsub2 = addsub.clone();
+
+    let t1 = std::thread::spawn(move || {
+        affinity::set_thread_affinity(&[0]).unwrap();
+        for i in 0..N {
+            addsub1[i % SIZE].add.fetch_add(i as u64, ORDERING);
+        }
+    });
+    let t2 = std::thread::spawn(move || {
+        // Not 1! Core 1 is a virtual core of the same physical one.
+        affinity::set_thread_affinity(&[2]).unwrap();
+        for i in 0..N {
+            addsub2[i % SIZE].sub.fetch_add(i as u64, ORDERING);
+        }
+    });
+    t1.join().unwrap();
+    t2.join().unwrap();
+
+    for item in &*addsub {
+        eprintln!("{}", item.get_value());
+    }
+}
+```
+
+```
+Benchmark 1: ./false_sharing_8_noalign
+  Time (mean ± σ):     22.548 s ±  1.376 s    [User: 44.942 s, System: 0.002 s]
+  Range (min … max):   21.032 s … 24.943 s    10 runs
+
+Benchmark 1: ./false_sharing_8_64
+  Time (mean ± σ):      5.840 s ±  0.014 s    [User: 11.372 s, System: 0.001 s]
+  Range (min … max):    5.815 s …  5.865 s    10 runs
+
+Benchmark 1: ./false_sharing_8_128
+  Time (mean ± σ):      5.544 s ±  0.021 s    [User: 11.075 s, System: 0.002 s]
+  Range (min … max):    5.514 s …  5.578 s    10 runs
+
+Intel(R) Xeon(R) Platinum 8280 at DigitalOcean droplet.
+```
+
 # Conclusion
 
 Modern processors are complex but unpredictable beasts. They make our lives harder trying to make our lifes easier. Benchmarking them is a minefield.
