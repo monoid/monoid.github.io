@@ -23,13 +23,13 @@ TocOpen: true
 ### Qdrant Solutions GmbH
 **Core Rust Developer**, remote contract\
 *Sep 2025 - now*
-- Optimized batch search operations by using cache more efficiently.
+- Optimized batch search operations by using CPU cache more efficiently.
 - Identified and fixed a memory safety issue (unsoundness) in the production Rust code.
 - Analyzed performance of Qdrant under concurrent search-update workloads.
 - Based on this analysis, designed a new concurrent architecture for the Qdrant core using fine-grained locks and atomic operations.
 
 ### Stealth cryptography startup
-**Rust Developer**, remote contract\
+**Rust Developer**, short term remote contract\
 *Jun 2025 - Sep 2025 (3 months)*
 - Co-researched an application of functional encryption for MPC (multi-party computation).
 - Implemented function encryption schemes and an optimized LWE encryption algorithm.
@@ -69,6 +69,7 @@ query search statistics tool.
  
 Stack: Python, C++, YTsaurus MapReduce, Yandex's in-house cloud.
 
+<!--  Not worth it.
 ### BARS Group
 **Python Developer**, Novosibirsk, Russia\
 *Dec 2013 - Feb 2014 (3 months)*
@@ -76,7 +77,8 @@ Stack: Python, C++, YTsaurus MapReduce, Yandex's in-house cloud.
 - Developed a web application for accountants as part of a medium-sized team.
 
 Stack: Django for backend, JavaScript with Sencha ExtJS for frontend.
- 
+--> 
+
 ### Institute of Geology and Mineralogy of SB RAS
 **Leading Software Engineer**, Novosibirsk, Russia\
 *September 2000 - December 2013 (13 years 4 months)*
