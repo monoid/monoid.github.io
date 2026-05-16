@@ -22,7 +22,8 @@ TocOpen: true
  
 ### Qdrant Solutions GmbH
 **Core Rust Developer**, remote contract\
-*Sep 2025 - now*
+*Sep 2025 - May 2026* (8 months)
+High-performance vector database.
 - Optimized batch search operations by using CPU cache more efficiently.
 - Identified and fixed a memory safety issue (unsoundness) in the production Rust code.
 - Analyzed performance of Qdrant under concurrent search-update workloads.
@@ -38,6 +39,7 @@ TocOpen: true
 ### Cloudless Labs (Fluence Labs)
 **Senior Rust Developer**, remote contract\
 *May 2022 - Apr 2025 (2 years 11 months)*
+Web3 startup.
 - Contributed to development of AquaVM, a distributed language for Web3, with main focus on performance and correctness.  Built tooling and infrastructure, including a testing framework and a benchmark suite. Researched and implemented a data exchange format that significantly reduced memory size and execution time. Co-designed and implemented data signing scheme for distributed data.
 - Researched and implemented internal representation and data serialization that reduced data size, memory size and execution time.
 - Contributed to the development of a continuous hardware performance measurement tool
@@ -59,8 +61,7 @@ Stack: Python, NumPy, C++ (incl. Boost.Python), Spark (PySpark) on Hadoop.
 ### Yandex
 **Python and C++ Developer**, Novosibirsk, Russia\
 *Feb 2014 - Nov 2019 (5 years 10 months)*
-Was responsible for the <https://wordstat.yandex.ru>, Yandex's search engine
-query search statistics tool.
+Was responsible for the <https://wordstat.yandex.ru>, Yandex's ad engine query statistics tool.
 - Worked on large data processing pipelines (YTsaurus MapReduce, Yandex in-house data processing cloud) for processing terabytes of daily data.
 <!-- TODO developed -->
 - Developed and maintained custom indices (short-living and long-living) from user search logs.
