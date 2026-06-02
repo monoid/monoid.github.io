@@ -40,16 +40,30 @@ The reason is that since the Sandy Bridge architecture, the spatial prefetcher[^
 
 [^prefetcher]: A spatial prefetcher tries to predict random memory access patterns, and a streaming prefetcher handles sequential ones.
 
-Moreover, this behavior is controlled by a per-core MSR setting called either "Adjacent Cache Line Prefetcher Disable" or "L2 Adjacent Cache Line Prefetcher Disable". Check before benchmarking!
+Moreover, this behavior is controlled by a per-core MSR setting called either
+"Adjacent Cache Line Prefetcher Disable" or "L2 Adjacent Cache Line Prefetcher
+Disable". Check it before benchmarking!
 
 # Benchmark
 
-I tried to reproduce the 128-byte aligment improvement on a real benchmark. It wasn't easy! Just starting 2 threads updating an atomic each is not enough: once the atomics are in the respective CPU caches, no MESI interaction is done. Let's try something more involved: a vector of atomics should do the trick.
+I tried to reproduce the 128-byte aligment improvement on a real benchmark. It
+wasn't easy! Just starting 2 threads updating an atomic each is not enough: once
+the atomics are in the respective CPU caches, no MESI interaction is done. Let's
+try something more involved: a vector of atomics should do the trick.
+
+Let imitate a classical two-pointer atomic queue: a atomic for head being
+incremented by reader, and an atomic for tail incremented by writer. Using
+either `#[repr(align(64))]` or `#[repr(align(128))]` for a wrapper type similar
+to `crossbeam-utils` will make the fields being either 64 or 128 bytes away.
+
 
 ```rust
 use std::ops::Deref;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+
+const N: usize = 1_000_000_000;
+const ORDERING: Ordering = Ordering::AcqRel;
+const SIZE: usize = 8;
 
 // Uncomment any of thses lines.
 // #[repr(align(64))]
@@ -85,26 +99,29 @@ impl AddSub {
 }
 
 fn main() {
-    const N: usize = 1_000_000_000;
-    const ORDERING: Ordering = Ordering::AcqRel;
-    const SIZE: usize = 8;
-
     let data = Vec::from_iter(std::iter::repeat_with(|| AddSub::default()).take(SIZE));
-    let addsub: Arc<[AddSub]> = data.into();
-    let addsub1 = addsub.clone();
-    let addsub2 = addsub.clone();
+    let addsub: Box<[AddSub]> = data.into();
+    let addsub = &*Box::leak(addsub);
 
     let t1 = std::thread::spawn(move || {
+        #[cfg(target_arch = "x86_64")]
         affinity::set_thread_affinity(&[0]).unwrap();
-        for i in 0..N {
-            addsub1[i % SIZE].add.fetch_add(i as u64, ORDERING);
+
+        for _ in 0..(N / SIZE) {
+            for elt in addsub {
+                elt.add.fetch_add(1u64, ORDERING);
+            }
         }
     });
     let t2 = std::thread::spawn(move || {
+        #[cfg(target_arch = "x86_64")]
         // Not 1! Core 1 is a virtual core of the same physical one.
         affinity::set_thread_affinity(&[2]).unwrap();
-        for i in 0..N {
-            addsub2[i % SIZE].sub.fetch_add(i as u64, ORDERING);
+
+        for _ in 0..(N / SIZE) {
+            for elt in addsub {
+                elt.sub.fetch_add(1u64, ORDERING);
+            }
         }
     });
     t1.join().unwrap();
@@ -117,202 +134,147 @@ fn main() {
 ```
 
 ```
-# Intel(R) Xeon(R) Platinum 8280 CPU @ 2.70GHz at DigitalOcean droplet.
-$ hyperfine ./false_sharing_* --runs 20
+Instance c5d.4xlarge
 
-Benchmark 1: ./false_sharing_8_noalign
-  Time (mean ± σ):     22.548 s ±  1.376 s    [User: 44.942 s, System: 0.002 s]
-  Range (min … max):   21.032 s … 24.943 s    10 runs
-
-Benchmark 1: ./false_sharing_8_64
-  Time (mean ± σ):      5.840 s ±  0.014 s    [User: 11.372 s, System: 0.001 s]
-  Range (min … max):    5.815 s …  5.865 s    10 runs
-
-Benchmark 1: ./false_sharing_8_128
-  Time (mean ± σ):      5.544 s ±  0.021 s    [User: 11.075 s, System: 0.002 s]
-  Range (min … max):    5.514 s …  5.578 s    10 runs
---------------------------------------------------------------------------------
-$ hyperfine ./false_sharing_* --runs 20
-Benchmark 1: ./false_sharing_1_128
-  Time (mean ± σ):      4.929 s ±  0.015 s    [User: 9.851 s, System: 0.001 s]
-  Range (min … max):    4.911 s …  4.967 s    20 runs
+processor       : 0
+vendor_id       : GenuineIntel
+cpu family      : 6
+model           : 85
+model name      : Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz
+stepping        : 4
+microcode       : 0x2007006
+cpu MHz         : 3354.253
+cache size      : 25344 KB
+physical id     : 0
+siblings        : 16
+core id         : 0
+cpu cores       : 8
+apicid          : 0
+initial apicid  : 0
+fpu             : yes
+fpu_exception   : yes
+cpuid level     : 13
+wp              : yes
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch cpuid_fault pti fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx avx512f avx512dq rdseed adx smap clflushopt clwb avx512cd avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves ida arat pku ospke
+bugs            : cpu_meltdown spectre_v1 spectre_v2 spec_store_bypass l1tf mds swapgs itlb_multihit mmio_stale_data retbleed gds bhi spectre_v2_user its
+bogomips        : 6000.01
+clflush size    : 64
+cache_alignment : 64
+address sizes   : 46 bits physical, 48 bits virtual
+power management:
+------------------------------------------------------------------------------
+hyperfine --warmup 3  --export-json results.json ./false_sharing_* ./false_sharing_12_128
+Benchmark 1: ./false_sharing_12_128
+  Time (mean ± σ):      6.189 s ±  0.001 s    [User: 12.373 s, System: 0.001 s]
+  Range (min … max):    6.188 s …  6.190 s    10 runs
  
-Benchmark 2: ./false_sharing_1_64
-  Time (mean ± σ):      4.932 s ±  0.015 s    [User: 9.857 s, System: 0.001 s]
-  Range (min … max):    4.918 s …  4.984 s    20 runs
+Benchmark 2: ./false_sharing_12_64
+  Time (mean ± σ):      6.258 s ±  0.064 s    [User: 12.497 s, System: 0.002 s]
+  Range (min … max):    6.206 s …  6.415 s    10 runs
  
-Benchmark 3: ./false_sharing_2_128
-  Time (mean ± σ):      4.928 s ±  0.009 s    [User: 9.851 s, System: 0.001 s]
-  Range (min … max):    4.917 s …  4.956 s    20 runs
+Benchmark 3: ./false_sharing_16_128
+  Time (mean ± σ):      6.646 s ±  0.001 s    [User: 13.285 s, System: 0.002 s]
+  Range (min … max):    6.645 s …  6.647 s    10 runs
  
-Benchmark 4: ./false_sharing_2_64
-  Time (mean ± σ):      4.923 s ±  0.010 s    [User: 9.841 s, System: 0.001 s]
-  Range (min … max):    4.910 s …  4.943 s    20 runs
+Benchmark 4: ./false_sharing_16_64
+  Time (mean ± σ):      6.943 s ±  0.281 s    [User: 13.878 s, System: 0.001 s]
+  Range (min … max):    6.649 s …  7.378 s    10 runs
  
-Benchmark 5: ./false_sharing_3_128
-  Time (mean ± σ):      5.472 s ±  0.015 s    [User: 10.940 s, System: 0.001 s]
-  Range (min … max):    5.455 s …  5.524 s    20 runs
+Benchmark 5: ./false_sharing_1_128
+  Time (mean ± σ):      7.427 s ±  0.001 s    [User: 14.845 s, System: 0.001 s]
+  Range (min … max):    7.426 s …  7.428 s    10 runs
  
-Benchmark 6: ./false_sharing_3_64
-  Time (mean ± σ):      5.746 s ±  0.010 s    [User: 11.212 s, System: 0.001 s]
-  Range (min … max):    5.730 s …  5.775 s    20 runs
+Benchmark 6: ./false_sharing_1_64
+  Time (mean ± σ):      7.426 s ±  0.001 s    [User: 14.843 s, System: 0.002 s]
+  Range (min … max):    7.424 s …  7.427 s    10 runs
  
-Benchmark 7: ./false_sharing_4_128
-  Time (mean ± σ):      5.196 s ±  0.012 s    [User: 10.114 s, System: 0.001 s]
-  Range (min … max):    5.181 s …  5.236 s    20 runs
+Benchmark 7: ./false_sharing_2_128
+  Time (mean ± σ):      5.349 s ±  0.001 s    [User: 10.690 s, System: 0.001 s]
+  Range (min … max):    5.348 s …  5.349 s    10 runs
  
-Benchmark 8: ./false_sharing_4_64
-  Time (mean ± σ):      5.207 s ±  0.017 s    [User: 10.407 s, System: 0.001 s]
-  Range (min … max):    5.184 s …  5.260 s    20 runs
+Benchmark 8: ./false_sharing_2_64
+  Time (mean ± σ):      5.464 s ±  0.002 s    [User: 10.809 s, System: 0.001 s]
+  Range (min … max):    5.463 s …  5.468 s    10 runs
  
-Benchmark 9: ./false_sharing_5_128
-  Time (mean ± σ):      5.475 s ±  0.012 s    [User: 10.944 s, System: 0.001 s]
-  Range (min … max):    5.459 s …  5.504 s    20 runs
+Benchmark 9: ./false_sharing_3_128
+  Time (mean ± σ):      5.249 s ±  0.002 s    [User: 10.492 s, System: 0.001 s]
+  Range (min … max):    5.247 s …  5.251 s    10 runs
  
-Benchmark 10: ./false_sharing_5_64
-  Time (mean ± σ):      5.476 s ±  0.012 s    [User: 10.946 s, System: 0.001 s]
-  Range (min … max):    5.460 s …  5.510 s    20 runs
+Benchmark 10: ./false_sharing_3_64
+  Time (mean ± σ):      5.475 s ±  0.093 s    [User: 10.923 s, System: 0.001 s]
+  Range (min … max):    5.414 s …  5.726 s    10 runs
  
-Benchmark 11: ./false_sharing_6_128
-  Time (mean ± σ):      5.620 s ±  0.034 s    [User: 11.233 s, System: 0.001 s]
-  Range (min … max):    5.596 s …  5.756 s    20 runs
+Benchmark 11: ./false_sharing_4_128
+  Time (mean ± σ):      5.420 s ±  0.001 s    [User: 10.832 s, System: 0.001 s]
+  Range (min … max):    5.419 s …  5.421 s    10 runs
  
-Benchmark 12: ./false_sharing_6_64
-  Time (mean ± σ):      5.630 s ±  0.023 s    [User: 11.254 s, System: 0.002 s]
-  Range (min … max):    5.594 s …  5.676 s    20 runs
+Benchmark 12: ./false_sharing_4_64
+  Time (mean ± σ):      5.541 s ±  0.092 s    [User: 11.073 s, System: 0.001 s]
+  Range (min … max):    5.439 s …  5.757 s    10 runs
  
-Benchmark 13: ./false_sharing_7_128
-  Time (mean ± σ):      5.892 s ±  0.025 s    [User: 11.777 s, System: 0.001 s]
-  Range (min … max):    5.868 s …  5.977 s    20 runs
+Benchmark 13: ./false_sharing_5_128
+  Time (mean ± σ):      5.363 s ±  0.002 s    [User: 10.717 s, System: 0.002 s]
+  Range (min … max):    5.359 s …  5.367 s    10 runs
  
-Benchmark 14: ./false_sharing_7_64
-  Time (mean ± σ):      5.893 s ±  0.015 s    [User: 11.778 s, System: 0.001 s]
-  Range (min … max):    5.866 s …  5.920 s    20 runs
+Benchmark 14: ./false_sharing_5_64
+  Time (mean ± σ):      5.696 s ±  0.247 s    [User: 11.387 s, System: 0.001 s]
+  Range (min … max):    5.361 s …  6.235 s    10 runs
  
-Benchmark 15: ./false_sharing_8_128
-  Time (mean ± σ):      5.225 s ±  0.018 s    [User: 10.169 s, System: 0.001 s]
-  Range (min … max):    5.199 s …  5.264 s    20 runs
+Benchmark 15: ./false_sharing_6_128
+  Time (mean ± σ):      5.396 s ±  0.001 s    [User: 10.785 s, System: 0.001 s]
+  Range (min … max):    5.395 s …  5.397 s    10 runs
  
-Benchmark 16: ./false_sharing_8_64
-  Time (mean ± σ):      5.227 s ±  0.019 s    [User: 10.446 s, System: 0.001 s]
-  Range (min … max):    5.200 s …  5.282 s    20 runs
+Benchmark 16: ./false_sharing_6_64
+  Time (mean ± σ):      5.609 s ±  0.239 s    [User: 11.210 s, System: 0.001 s]
+  Range (min … max):    5.371 s …  6.012 s    10 runs
+ 
+Benchmark 17: ./false_sharing_7_128
+  Time (mean ± σ):      5.137 s ±  0.001 s    [User: 10.265 s, System: 0.001 s]
+  Range (min … max):    5.135 s …  5.138 s    10 runs
+ 
+Benchmark 18: ./false_sharing_7_64
+  Time (mean ± σ):      5.684 s ±  0.201 s    [User: 11.362 s, System: 0.001 s]
+  Range (min … max):    5.343 s …  6.057 s    10 runs
+ 
+Benchmark 19: ./false_sharing_8_128
+  Time (mean ± σ):      6.679 s ±  0.000 s    [User: 13.136 s, System: 0.001 s]
+  Range (min … max):    6.678 s …  6.679 s    10 runs
+ 
+Benchmark 20: ./false_sharing_8_64
+  Time (mean ± σ):      6.800 s ±  0.241 s    [User: 13.590 s, System: 0.002 s]
+  Range (min … max):    6.684 s …  7.473 s    10 runs
+ 
+Benchmark 21: ./false_sharing_12_128
+  Time (mean ± σ):      6.189 s ±  0.000 s    [User: 12.375 s, System: 0.001 s]
+  Range (min … max):    6.189 s …  6.190 s    10 runs
  
 Summary
-  ./false_sharing_2_64 ran
-    1.00 ± 0.00 times faster than ./false_sharing_2_128
-    1.00 ± 0.00 times faster than ./false_sharing_1_128
-    1.00 ± 0.00 times faster than ./false_sharing_1_64
+  ./false_sharing_7_128 ran
+    1.02 ± 0.00 times faster than ./false_sharing_3_128
+    1.04 ± 0.00 times faster than ./false_sharing_2_128
+    1.04 ± 0.00 times faster than ./false_sharing_5_128
+    1.05 ± 0.00 times faster than ./false_sharing_6_128
     1.06 ± 0.00 times faster than ./false_sharing_4_128
-    1.06 ± 0.00 times faster than ./false_sharing_4_64
-    1.06 ± 0.00 times faster than ./false_sharing_8_128
-    1.06 ± 0.00 times faster than ./false_sharing_8_64
-    1.11 ± 0.00 times faster than ./false_sharing_3_128
-    1.11 ± 0.00 times faster than ./false_sharing_5_128
-    1.11 ± 0.00 times faster than ./false_sharing_5_64
-    1.14 ± 0.01 times faster than ./false_sharing_6_128
-    1.14 ± 0.01 times faster than ./false_sharing_6_64
-    1.17 ± 0.00 times faster than ./false_sharing_3_64
-    1.20 ± 0.01 times faster than ./false_sharing_7_128
-    1.20 ± 0.00 times faster than ./false_sharing_7_64
-
---------------------------------------------------------------------------------
-# hyperfine ./false_sharing_?_* ./false_sharing_16_{64,128} --runs 20
-Benchmark 1: ./false_sharing_1_128
-  Time (mean ± σ):      4.942 s ±  0.015 s    [User: 9.877 s, System: 0.001 s]
-  Range (min … max):    4.917 s …  4.967 s    20 runs
- 
-Benchmark 2: ./false_sharing_1_64
-  Time (mean ± σ):      4.934 s ±  0.015 s    [User: 9.860 s, System: 0.002 s]
-  Range (min … max):    4.912 s …  4.965 s    20 runs
- 
-Benchmark 3: ./false_sharing_2_128
-  Time (mean ± σ):      4.927 s ±  0.012 s    [User: 9.845 s, System: 0.001 s]
-  Range (min … max):    4.913 s …  4.947 s    20 runs
- 
-Benchmark 4: ./false_sharing_2_64
-  Time (mean ± σ):      4.934 s ±  0.017 s    [User: 9.860 s, System: 0.002 s]
-  Range (min … max):    4.915 s …  4.981 s    20 runs
- 
-Benchmark 5: ./false_sharing_3_128
-  Time (mean ± σ):      5.475 s ±  0.015 s    [User: 10.941 s, System: 0.002 s]
-  Range (min … max):    5.458 s …  5.510 s    20 runs
- 
-Benchmark 6: ./false_sharing_3_64
-  Time (mean ± σ):      5.749 s ±  0.026 s    [User: 11.219 s, System: 0.001 s]
-  Range (min … max):    5.728 s …  5.847 s    20 runs
- 
-Benchmark 7: ./false_sharing_4_128
-  Time (mean ± σ):      5.206 s ±  0.016 s    [User: 10.133 s, System: 0.002 s]
-  Range (min … max):    5.182 s …  5.249 s    20 runs
- 
-Benchmark 8: ./false_sharing_4_64
-  Time (mean ± σ):      5.199 s ±  0.015 s    [User: 10.392 s, System: 0.001 s]
-  Range (min … max):    5.184 s …  5.238 s    20 runs
- 
-Benchmark 9: ./false_sharing_5_128
-  Time (mean ± σ):      5.471 s ±  0.010 s    [User: 10.935 s, System: 0.001 s]
-  Range (min … max):    5.458 s …  5.491 s    20 runs
- 
-Benchmark 10: ./false_sharing_5_64
-  Time (mean ± σ):      5.491 s ±  0.020 s    [User: 10.975 s, System: 0.001 s]
-  Range (min … max):    5.463 s …  5.537 s    20 runs
- 
-Benchmark 11: ./false_sharing_6_128
-  Time (mean ± σ):      5.628 s ±  0.013 s    [User: 11.249 s, System: 0.002 s]
-  Range (min … max):    5.602 s …  5.649 s    20 runs
- 
-Benchmark 12: ./false_sharing_6_64
-  Time (mean ± σ):      5.635 s ±  0.016 s    [User: 11.264 s, System: 0.001 s]
-  Range (min … max):    5.610 s …  5.672 s    20 runs
- 
-Benchmark 13: ./false_sharing_7_128
-  Time (mean ± σ):      5.881 s ±  0.012 s    [User: 11.755 s, System: 0.001 s]
-  Range (min … max):    5.864 s …  5.910 s    20 runs
- 
-Benchmark 14: ./false_sharing_7_64
-  Time (mean ± σ):      5.880 s ±  0.012 s    [User: 11.754 s, System: 0.001 s]
-  Range (min … max):    5.866 s …  5.917 s    20 runs
- 
-Benchmark 15: ./false_sharing_8_128
-  Time (mean ± σ):      5.223 s ±  0.038 s    [User: 10.166 s, System: 0.002 s]
-  Range (min … max):    5.184 s …  5.344 s    20 runs
- 
-Benchmark 16: ./false_sharing_8_64
-  Time (mean ± σ):      5.229 s ±  0.024 s    [User: 10.450 s, System: 0.002 s]
-  Range (min … max):    5.196 s …  5.292 s    20 runs
- 
-Benchmark 17: ./false_sharing_16_64
-  Time (mean ± σ):      5.442 s ±  0.508 s    [User: 10.877 s, System: 0.002 s]
-  Range (min … max):    4.932 s …  6.462 s    20 runs
- 
-Benchmark 18: ./false_sharing_16_128
-  Time (mean ± σ):      5.447 s ±  0.061 s    [User: 10.433 s, System: 0.002 s]
-  Range (min … max):    5.377 s …  5.618 s    20 runs
- 
-Summary
-  ./false_sharing_2_128 ran
-    1.00 ± 0.00 times faster than ./false_sharing_2_64
-    1.00 ± 0.00 times faster than ./false_sharing_1_64
-    1.00 ± 0.00 times faster than ./false_sharing_1_128
-    1.06 ± 0.00 times faster than ./false_sharing_4_64
-    1.06 ± 0.00 times faster than ./false_sharing_4_128
-    1.06 ± 0.01 times faster than ./false_sharing_8_128
-    1.06 ± 0.01 times faster than ./false_sharing_8_64
-    1.10 ± 0.10 times faster than ./false_sharing_16_64
-    1.11 ± 0.01 times faster than ./false_sharing_16_128
-    1.11 ± 0.00 times faster than ./false_sharing_5_128
-    1.11 ± 0.00 times faster than ./false_sharing_3_128
-    1.11 ± 0.00 times faster than ./false_sharing_5_64
-    1.14 ± 0.00 times faster than ./false_sharing_6_128
-    1.14 ± 0.00 times faster than ./false_sharing_6_64
-    1.17 ± 0.01 times faster than ./false_sharing_3_64
-    1.19 ± 0.00 times faster than ./false_sharing_7_64
-    1.19 ± 0.00 times faster than ./false_sharing_7_128
+    1.06 ± 0.00 times faster than ./false_sharing_2_64
+    1.07 ± 0.02 times faster than ./false_sharing_3_64
+    1.08 ± 0.02 times faster than ./false_sharing_4_64
+    1.09 ± 0.05 times faster than ./false_sharing_6_64
+    1.11 ± 0.04 times faster than ./false_sharing_7_64
+    1.11 ± 0.05 times faster than ./false_sharing_5_64
+    1.20 ± 0.00 times faster than ./false_sharing_12_128
+    1.20 ± 0.00 times faster than ./false_sharing_12_128
+    1.22 ± 0.01 times faster than ./false_sharing_12_64
+    1.29 ± 0.00 times faster than ./false_sharing_16_128
+    1.30 ± 0.00 times faster than ./false_sharing_8_128
+    1.32 ± 0.05 times faster than ./false_sharing_8_64
+    1.35 ± 0.05 times faster than ./false_sharing_16_64
+    1.45 ± 0.00 times faster than ./false_sharing_1_64
+    1.45 ± 0.00 times faster than ./false_sharing_1_128
 ```
 
 # Conclusion
 
-Modern processors are complex but unpredictable beasts. They make our lives harder trying to make our lifes easier. Benchmarking them is a minefield.
+Modern processors are complex beasts. They make our lives harder trying to make our lifes easier. Benchmarking them is a minefield.
 
 # Reading list
 
