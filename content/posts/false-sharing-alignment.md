@@ -57,6 +57,7 @@ either `#[repr(align(64))]` or `#[repr(align(128))]` for a wrapper type similar
 to `crossbeam-utils` will make the fields being either 64 or 128 bytes away.
 
 
+{{< details "Source code" >}}
 ```rust
 use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -132,6 +133,7 @@ fn main() {
     }
 }
 ```
+{{< /details >}}
 
 ```
 Instance c5d.4xlarge
