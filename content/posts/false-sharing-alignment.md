@@ -2,6 +2,7 @@
 title: "False Sharing Alignment"
 date: 2026-04-27T15:02:20+02:00
 draft: true
+ShowToc: true
 tags: ["atomic"]
 ---
 
@@ -46,18 +47,22 @@ Disable". Check it before benchmarking!
 
 # Benchmark
 
-I tried to reproduce the 128-byte aligment improvement on a real benchmark. It
+I tried to reproduce the 128-byte alignment improvement on a real benchmark. It
 wasn't easy! Just starting 2 threads updating an atomic each is not enough: once
 the atomics are in the respective CPU caches, no MESI interaction is done. Let's
 try something more involved: a vector of atomics should do the trick.
 
 Let imitate a classical two-pointer atomic queue: a atomic for head being
 incremented by reader, and an atomic for tail incremented by writer. Using
-either `#[repr(align(64))]` or `#[repr(align(128))]` for a wrapper type similar
-to `crossbeam-utils` will make the fields being either 64 or 128 bytes away.
+either `#[repr(align(64))]` or `#[repr(align(128))]` in the Rust code below for
+a wrapper type similar to `crossbeam-utils` will make the atomics being either 64
+or 128 bytes away.
 
-
+You can get the runnable code at
+<https://github.com/monoid/junk/tree/master/false_sharing>, but for your
+convenience, simplified code is below.
 {{< details "Source code" >}}
+
 ```rust
 use std::ops::Deref;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -116,7 +121,7 @@ fn main() {
     });
     let t2 = std::thread::spawn(move || {
         #[cfg(target_arch = "x86_64")]
-        // Not 1! Core 1 is a virtual core of the same physical one.
+        // Not 1! Core 1 is usually a virtual core of the same physical one as core 0.
         affinity::set_thread_affinity(&[2]).unwrap();
 
         for _ in 0..(N / SIZE) {
@@ -135,9 +140,27 @@ fn main() {
 ```
 {{< /details >}}
 
-```
-Instance c5d.4xlarge
+1. TODO pinning
+2. TODO looping
 
+## Digital Ocean
+
+I started benchmarking from a Digital Ocean VPS instance.  Unfortunately, I
+wasn't able to reproduce anything reliably.  I suspect that that Adjacent Prefetcher
+is simply disabled on Digital Ocean.
+
+## Amazon Web Services
+
+I was able to reliably reproduce the difference at AWS's `c5d.4xlarge` instance
+(Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz).  And execution time was not the
+only difference between 64 and 128 byte alignment!
+
+Unfortunately, I was not able to analyze programs' execution on AWS as most of
+hardware counters are restricted here.
+
+
+{{< details "CPU info" >}}
+```
 processor       : 0
 vendor_id       : GenuineIntel
 cpu family      : 6
@@ -164,8 +187,37 @@ clflush size    : 64
 cache_alignment : 64
 address sizes   : 46 bits physical, 48 bits virtual
 power management:
-------------------------------------------------------------------------------
-hyperfine --warmup 3  --export-json results.json ./false_sharing_* ./false_sharing_12_128
+```
+{{< /details >}}
+
+I've compiled a bunch of binaries with different parameters, and run them with
+```shell
+hyperfine --warmup 3  --export-json results.json ./false_sharing_*
+```
+
+## Results
+Size | align 64, time (mean ± σ) | align 128, time (mean ± σ)
+-----|-------------------|----------------
+1    |7.426 s ±  0.001 s |7.427 s ±  0.001 s
+2    |5.464 s ±  0.002 s |5.349 s ±  0.001 s
+3    |5.475 s ±  0.093 s |5.249 s ±  0.002 s
+4    |5.541 s ±  0.092 s |5.420 s ±  0.001 s
+5    |5.696 s ±  0.247 s |5.363 s ±  0.002 s
+6    |5.609 s ±  0.239 s |5.396 s ±  0.001 s
+7    |5.684 s ±  0.201 s |5.137 s ±  0.001 s
+8    |6.800 s ±  0.241 s |6.679 s ±  0.000 s
+12   |6.258 s ±  0.064 s |6.189 s ±  0.001 s
+16   |6.943 s ±  0.281 s |6.646 s ±  0.001 s
+
+128-byte alignment is not just a few percent faster, it also demonstrates **more
+consistent timings**, which may be crucial for real-time and latency-sensitive
+applications like HFT. The reason is clear: prefetcher-induced cache coherence
+in 64-byte alignment happens in unpredictable order and takes unpredictable
+time, while 128-byte alignment eliminates this contention.
+
+{{< details "Raw results" >}}
+```
+$ hyperfine --warmup 3  --export-json results.json ./false_sharing_* ./false_sharing_12_128
 Benchmark 1: ./false_sharing_12_128
   Time (mean ± σ):      6.189 s ±  0.001 s    [User: 12.373 s, System: 0.001 s]
   Range (min … max):    6.188 s …  6.190 s    10 runs
@@ -273,13 +325,20 @@ Summary
     1.45 ± 0.00 times faster than ./false_sharing_1_64
     1.45 ± 0.00 times faster than ./false_sharing_1_128
 ```
+{{< /details >}}
 
 # Conclusion
 
-Modern processors are complex beasts. They make our lives harder trying to make our lifes easier. Benchmarking them is a minefield.
+Modern processors are complex beasts. They make our lives harder trying to make our lives easier. Benchmarking them is a minefield.
 
 # Reading list
 
 1. Mara Bos, _Rust Atomics and Locks_. O'Reilly Media, 2023. ISBN 978-1098119447.
 2. Denis Bakhvalov, _Performance Analysis and Tuning on Modern CPUs_. 2024, ISBN 979-8869584229.
 3. [Intel® 64 and IA-32 Architectures Software Developer’s Manual](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html).
+
+
+# Disclaimer
+
+This text was written by Ivan Boldyrev. I used AI only for proofreading, but its
+help was invaluable.
