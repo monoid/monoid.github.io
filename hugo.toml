@@ -13,6 +13,7 @@ copyright = "Copyright © 2025, Ivan Boldyrev; all rights reserved."
 ShowShareButtons = true
 ShareButtons = ["x", "linkedin", "reddit", "facebook"]
 # ShowToc = true
+math = true
 
 [menu]
 [[menu.main]]
@@ -22,3 +23,12 @@ url = "about"
 [[menu.main]]
 name = "github"
 url = "https://github.com/monoid/"
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      [markup.goldmark.extensions.passthrough]
+        enable = true
+        [markup.goldmark.extensions.passthrough.delimiters]
+          block = [['\[', '\]'], ['$$', '$$']]
+          inline = [['\(', '\)']]
