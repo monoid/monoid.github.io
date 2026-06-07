@@ -8,10 +8,11 @@ tags: ["atomic"]
 
 # What is false sharing
 
-When CPUs and their cores read and update atomic variables, special hardware
-protocols make it correct and efficient, while keeping each core's caches consistent.
-The coordination doesn't happen per-address: memory always works
-with cache-line-sized chunks.
+What is [false sharing](https://en.wikipedia.org/wiki/False_sharing)? When CPUs
+and their cores read and update atomic variables, special hardware protocols
+make it correct and efficient, while keeping each core's caches consistent. The
+coordination doesn't happen per-address: these protocol works on
+cache-line-sized chunks.
 
 What happens when two atomic variables happen to reside on the same cache line?
 For example:
@@ -22,7 +23,9 @@ For example:
   struct and they have adjacent addresses!
 
 Each update operation makes the cache line dirty and requires coordination
-between multiple CPUs.
+between multiple CPUs. The CPUs are essentially playing [ping
+pong](https://www.stigaus.com/blogs/players-corner/the-fascinating-history-of-ping-pong)
+with the chunk of memory.
 
 # What to do
 
@@ -30,12 +33,19 @@ The solution is simple: separate the atomics by making them reside
 in different cache lines. It is done with some language-dependent alignment
 directive, though it is not the alignment, but the spacing matters.
 
+|           | 
+|-----------|-------------------
+| Rust      | `#[repr(aling(N))]` on the type declaration (or use a type wrapper)
+| C11       | `_Alignas(N)` on type or variable declaration
+| C++11     | `alignas(N)` on type, field or variable declaration
+| GCC/Clang | `__attribute__((aligned(N)))`
+
 Both _Rust Atomics and Locks_ by Mara Bos and _Performance Analysis and Tuning on
 Modern CPUs_ by Denis Bakhvalov recommend using cache line size, which is
 64 bytes for `x86_64`.
 However, libraries ([`crossbeam-utils`](https://github.com/crossbeam-rs/crossbeam/blob/822eb3abf00094fab5d817538aab42477c62c42a/crossbeam-utils/src/cache_padded.rs#L82-L90), Facebook's
 [`folly`](https://github.com/facebook/folly/blob/4d6b3c7999940ddf2e9c1eb9ed2c9cf3d8c2280f/folly/lang/Align.h#L186-L187))
-use 128 bytes. Why?
+use 128 bytes here. Why?
 
 The reason is that since the Sandy Bridge architecture, the spatial prefetcher[^prefetcher] in modern Intel and AMD CPUs' may load cache lines _in pairs_. It doesn't make the effective cache line size equal to 128 bytes, but still has its side-effects.
 
@@ -43,7 +53,7 @@ The reason is that since the Sandy Bridge architecture, the spatial prefetcher[^
 
 Moreover, this behavior is controlled by a per-core MSR setting called either
 "Adjacent Cache Line Prefetcher Disable" or "L2 Adjacent Cache Line Prefetcher
-Disable". Check it before benchmarking!
+Disable". Check it before benchmarking! If you can.
 
 # Benchmark
 
@@ -143,13 +153,26 @@ fn main() {
 1. TODO pinning
 2. TODO looping
 
+I've compiled a bunch of binaries with different parameters, and run them with
+```shell
+for i in $(seq 1 8) 12 16; do
+   for bits in 64 128; do
+      FSHARING_SIZE=$i cargo build --release --features cache_line_${bits}
+      mv target/release/false_sharing ./false_sharing_${i}_${bits}
+   done
+done
+
+hyperfine --warmup 3  --export-json results.json ./false_sharing_*
+```
+
 ## Digital Ocean
 
-I started benchmarking from a Digital Ocean VPS instance.  Unfortunately, I
-wasn't able to reproduce anything reliably.  I suspect that that Adjacent Prefetcher
-is simply disabled on Digital Ocean.
+I started benchmarking at a Digital Ocean VPS instance. Unfortunately, I wasn't
+able to reproduce anything reliably. I suspect that that the Adjacent Prefetcher
+is simply disabled on Digital Ocean. Standard deviation was also quite large for
+both 128 and 64-byte alignment.
 
-## Amazon Web Services
+## Amazon Web Services, c5i
 
 I was able to reliably reproduce the difference at AWS's `c5d.4xlarge` instance
 (Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz).  And execution time was not the
@@ -157,7 +180,6 @@ only difference between 64 and 128 byte alignment!
 
 Unfortunately, I was not able to analyze programs' execution on AWS as most of
 hardware counters are restricted here.
-
 
 {{< details "CPU info" >}}
 ```
@@ -189,11 +211,6 @@ address sizes   : 46 bits physical, 48 bits virtual
 power management:
 ```
 {{< /details >}}
-
-I've compiled a bunch of binaries with different parameters, and run them with
-```shell
-hyperfine --warmup 3  --export-json results.json ./false_sharing_*
-```
 
 ## Results
 Size | align 64, time (mean ± σ) | align 128, time (mean ± σ)
@@ -327,9 +344,15 @@ Summary
 ```
 {{< /details >}}
 
+## Amazon Web Services, c6i
+To my surprise, the `c6i.4xlarge` instance with Intel(R) Xeon(R) Platinum 8375C
+CPU @ 2.90GHz (Ice Lake) demonstrates practically no difference between 64 and
+128 case, while standard deviation always stays very small.
+
 # Conclusion
 
-Modern processors are complex beasts. They make our lives harder trying to make our lives easier. Benchmarking them is a minefield.
+Modern processors are complex beasts. They make our lives harder trying to make
+our lives easier. Benchmarking them is a minefield.
 
 # Reading list
 
