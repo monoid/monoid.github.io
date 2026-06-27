@@ -1,6 +1,6 @@
 ---
 title: "False Sharing Alignment"
-date: 2026-04-27T15:02:20+02:00
+date: 2026-06-27T14:29:28+02:00
 ShowToc: true
 tags: ["atomic"]
 ---
