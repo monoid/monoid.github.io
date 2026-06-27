@@ -1,7 +1,6 @@
 ---
 title: "False Sharing Alignment"
 date: 2026-04-27T15:02:20+02:00
-draft: true
 ShowToc: true
 tags: ["atomic"]
 ---
@@ -11,7 +10,7 @@ tags: ["atomic"]
 What is [false sharing](https://en.wikipedia.org/wiki/False_sharing)? When CPUs
 and their cores read and update atomic variables, special hardware protocols
 make it correct and efficient, while keeping each core's caches consistent. The
-coordination doesn't happen per-address: these protocol works on
+coordination doesn't happen per-address: these protocols work on
 cache-line-sized chunks.
 
 What happens when two atomic variables happen to reside on the same cache line?
@@ -19,13 +18,12 @@ For example:
 
 - an array of atomics where each atomic is used by a separate thread (e.g. per-thread counters);
 - a queue with two atomic pointers where a writer updates the tail and a
-  reader updates the head. Of course, you define both pointers in the same
+  reader updates the head. Of course, you declare both pointers in the same
   struct and they have adjacent addresses!
 
 Each update operation makes the cache line dirty and requires coordination
-between multiple CPUs. The CPUs are essentially playing [ping
-pong](https://www.stigaus.com/blogs/players-corner/the-fascinating-history-of-ping-pong)
-with the chunk of memory.
+between CPUs. The CPUs are essentially playing ping pong with the chunk of
+memory.
 
 # What to do
 
@@ -35,7 +33,7 @@ directive, though it is not the alignment, but the spacing matters.
 
 |           | 
 |-----------|-------------------
-| Rust      | `#[repr(aling(N))]` on the type declaration (or use a type wrapper)
+| Rust      | `#[repr(align(N))]` on the type declaration (or use a type wrapper)
 | C11       | `_Alignas(N)` on type or variable declaration
 | C++11     | `alignas(N)` on type, field or variable declaration
 | GCC/Clang | `__attribute__((aligned(N)))`
@@ -45,11 +43,11 @@ Modern CPUs_ by Denis Bakhvalov recommend using cache line size, which is
 64 bytes for `x86_64`.
 However, libraries ([`crossbeam-utils`](https://github.com/crossbeam-rs/crossbeam/blob/822eb3abf00094fab5d817538aab42477c62c42a/crossbeam-utils/src/cache_padded.rs#L82-L90), Facebook's
 [`folly`](https://github.com/facebook/folly/blob/4d6b3c7999940ddf2e9c1eb9ed2c9cf3d8c2280f/folly/lang/Align.h#L186-L187))
-use 128 bytes here. Why?
+use 128 bytes here. **Why?**
 
-The reason is that since the Sandy Bridge architecture, the spatial prefetcher[^prefetcher] in modern Intel and AMD CPUs' may load cache lines _in pairs_. It doesn't make the effective cache line size equal to 128 bytes, but still has its side-effects.
-
-[^prefetcher]: A spatial prefetcher tries to predict random memory access patterns, and a streaming prefetcher handles sequential ones.
+The reason is that since the Intel Sandy Bridge architecture, the spatial
+prefetcher may load cache lines _in pairs_. It doesn't make the
+effective cache line size equal to 128 bytes, but still has its side-effects.
 
 Moreover, this behavior is controlled by a per-core MSR setting called either
 "Adjacent Cache Line Prefetcher Disable" or "L2 Adjacent Cache Line Prefetcher
@@ -59,13 +57,14 @@ Disable". Check it before benchmarking! If you can.
 
 I tried to reproduce the 128-byte alignment improvement on a real benchmark. It
 wasn't easy! Just starting 2 threads updating an atomic each is not enough: once
-the atomics are in the respective CPU caches, no MESI interaction is done. Let's
-try something more involved: a vector of atomics should do the trick.
+the atomics are in the respective CPU caches, no MESI interaction seems to be
+done. Let's try something more involved: a vector of atomics should do the
+trick.
 
-Let imitate a classical two-pointer atomic queue: a atomic for head being
+Let's imitate a classical two-pointer atomic queue: an atomic for head being
 incremented by reader, and an atomic for tail incremented by writer. Using
 either `#[repr(align(64))]` or `#[repr(align(128))]` in the Rust code below for
-a wrapper type similar to `crossbeam-utils` will make the atomics being either 64
+a wrapper type similar to `crossbeam-utils` will place the atomics being either 64
 or 128 bytes away.
 
 You can get the runnable code at
@@ -81,7 +80,7 @@ const N: usize = 1_000_000_000;
 const ORDERING: Ordering = Ordering::AcqRel;
 const SIZE: usize = 8;
 
-// Uncomment any of thses lines.
+// Uncomment any of these lines.
 // #[repr(align(64))]
 // #[repr(align(128))]
 #[derive(Default, Debug)]
@@ -131,7 +130,7 @@ fn main() {
     });
     let t2 = std::thread::spawn(move || {
         #[cfg(target_arch = "x86_64")]
-        // Not 1! Core 1 is usually a virtual core of the same physical one as core 0.
+        // Not 1! Core 1 is usually a virtual core of the same physical one as core 0, sharing the same caches.
         affinity::set_thread_affinity(&[2]).unwrap();
 
         for _ in 0..(N / SIZE) {
@@ -150,10 +149,14 @@ fn main() {
 ```
 {{< /details >}}
 
-1. TODO pinning
-2. TODO looping
+1. Pinning makes the benchmark more predictable.  It avoids both noise from a thread
+   moving from a core to core, and same-core situation when threads use the same cache.
+2. You may notice that number of operations is `SIZE*floor(N/SIZE)` which is not
+   equal to `N`.  It makes comparing different `SIZE` harder... until we notice
+   that difference is really negligible, because our `SIZE` are small and `N` is
+   large.
 
-I've compiled a bunch of binaries with different parameters, and run them with
+I've compiled a bunch of binaries with different parameters, and ran them with
 ```shell
 for i in $(seq 1 8) 12 16; do
    for bits in 64 128; do
@@ -167,12 +170,12 @@ hyperfine --warmup 3  --export-json results.json ./false_sharing_*
 
 ## Digital Ocean
 
-I started benchmarking at a Digital Ocean VPS instance. Unfortunately, I wasn't
-able to reproduce anything reliably. I suspect that that the Adjacent Prefetcher
-is simply disabled on Digital Ocean. Standard deviation was also quite large for
-both 128 and 64-byte alignment.
+I started by benchmarking at a Digital Ocean VPS instance. Unfortunately, I
+wasn't able to reproduce anything reliably. I suspect that the Adjacent
+Prefetcher is simply disabled on Digital Ocean. Standard deviation was also
+quite large for both 128 and 64-byte alignment.
 
-## Amazon Web Services, c5i
+## Amazon Web Services, c5d
 
 I was able to reliably reproduce the difference at AWS's `c5d.4xlarge` instance
 (Intel(R) Xeon(R) Platinum 8124M CPU @ 3.00GHz).  And execution time was not the
@@ -232,7 +235,7 @@ applications like HFT. The reason is clear: prefetcher-induced cache coherence
 in 64-byte alignment happens in unpredictable order and takes unpredictable
 time, while 128-byte alignment eliminates this contention.
 
-{{< details "Raw results" >}}
+{{< details "Raw results, AWS c5d.x4large" >}}
 ```
 $ hyperfine --warmup 3  --export-json results.json ./false_sharing_* ./false_sharing_12_128
 Benchmark 1: ./false_sharing_12_128
@@ -347,7 +350,72 @@ Summary
 ## Amazon Web Services, c6i
 To my surprise, the `c6i.4xlarge` instance with Intel(R) Xeon(R) Platinum 8375C
 CPU @ 2.90GHz (Ice Lake) demonstrates practically no difference between 64 and
-128 case, while standard deviation always stays very small.
+128 case, while standard deviation always stays very small. I can only speculate
+that either Intel changed its mind, or the prefetcher is more sophisticated
+here, and another approach may be needed to reproduce the problem.
+
+{{< details "Raw results, AWS c6i.x4large" >}}
+```
+$ hyperfine --warmup 3 --export-json c6i.json ./false_sharing_*
+Benchmark 1: ./false_sharing_12_128
+  Time (mean ± σ):      5.512 s ±  0.000 s    [User: 11.012 s, System: 0.001 s]
+  Range (min … max):    5.512 s …  5.513 s    10 runs
+ 
+Benchmark 2: ./false_sharing_12_64
+  Time (mean ± σ):      5.512 s ±  0.000 s    [User: 11.011 s, System: 0.001 s]
+  Range (min … max):    5.512 s …  5.513 s    10 runs
+ 
+Benchmark 3: ./false_sharing_16_128
+  Time (mean ± σ):      5.506 s ±  0.000 s    [User: 10.998 s, System: 0.001 s]
+  Range (min … max):    5.505 s …  5.507 s    10 runs
+ 
+  Warning: Statistical outliers were detected. Consider re-running this benchmark on a quiet system without any interferences from other programs. It might help to use the '--warmup' or '--prepare' options.
+ 
+Benchmark 4: ./false_sharing_16_64
+  Time (mean ± σ):      5.506 s ±  0.000 s    [User: 10.999 s, System: 0.001 s]
+  Range (min … max):    5.506 s …  5.507 s    10 runs
+ 
+Benchmark 5: ./false_sharing_1_128
+  Time (mean ± σ):      6.073 s ±  0.001 s    [User: 12.136 s, System: 0.001 s]
+  Range (min … max):    6.071 s …  6.074 s    10 runs
+ 
+Benchmark 6: ./false_sharing_1_64
+  Time (mean ± σ):      6.073 s ±  0.001 s    [User: 12.136 s, System: 0.001 s]
+  Range (min … max):    6.071 s …  6.075 s    10 runs
+ 
+Benchmark 7: ./false_sharing_2_128
+  Time (mean ± σ):      5.608 s ±  0.003 s    [User: 11.205 s, System: 0.001 s]
+  Range (min … max):    5.604 s …  5.612 s    10 runs
+ 
+Benchmark 8: ./false_sharing_2_64
+  Time (mean ± σ):      5.624 s ±  0.004 s    [User: 11.236 s, System: 0.001 s]
+  Range (min … max):    5.617 s …  5.630 s    10 runs
+ 
+Benchmark 9: ./false_sharing_3_128
+  Time (mean ± σ):      5.574 s ±  0.001 s    [User: 11.135 s, System: 0.001 s]
+  Range (min … max):    5.572 s …  5.576 s    10 runs
+ 
+Benchmark 10: ./false_sharing_3_64
+  Time (mean ± σ):      5.577 s ±  0.003 s    [User: 11.130 s, System: 0.001 s]
+  Range (min … max):    5.571 s …  5.580 s    10 runs
+ 
+Benchmark 11: ./false_sharing_4_128
+  Time (mean ± σ):      5.560 s ±  0.000 s    [User: 11.109 s, System: 0.001 s]
+  Range (min … max):    5.560 s …  5.561 s    10 runs
+ 
+Benchmark 12: ./false_sharing_4_64
+  Time (mean ± σ):      5.560 s ±  0.000 s    [User: 11.099 s, System: 0.001 s]
+  Range (min … max):    5.560 s …  5.561 s    10 runs
+ 
+Benchmark 13: ./false_sharing_5_128
+  Time (mean ± σ):      5.546 s ±  0.000 s    [User: 11.066 s, System: 0.001 s]
+  Range (min … max):    5.545 s …  5.547 s    10 runs
+ 
+Benchmark 14: ./false_sharing_5_64
+  Time (mean ± σ):      5.539 s ±  0.000 s    [User: 11.075 s, System: 0.001 s]
+  Range (min … max):    5.539 s …  5.540 s    10 runs
+```
+{{< /details >}}
 
 # Conclusion
 
@@ -363,5 +431,6 @@ our lives easier. Benchmarking them is a minefield.
 
 # Disclaimer
 
-This text was written by Ivan Boldyrev. I used AI only for proofreading, but its
+This text was written by Ivan Boldyrev.  No hallucinations, no slop, no
+homogenizaton.  I used AI only for brainstorming and proofreading, but its
 help was invaluable.
